@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-aot-demo
+  labels:
+    app: spring-aot-demo
+    version: 0.0.1-SNAPSHOT
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spring-aot-demo
+  template:
+    metadata:
+      labels:
+        app: spring-aot-demo
+        version: 0.0.1-SNAPSHOT
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret
+      containers:
+      - name: spring-aot-demo
+        image: ghcr.io/vgrente/spring-aot-demo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: JAVA_TOOL_OPTIONS
+          value: "-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 2
+          timeoutSeconds: 3
+          failureThreshold: 30

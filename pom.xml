@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.0.0-SNAPSHOT</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>io.vgrente</groupId>
+	<artifactId>spring.aot.demo</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>spring.aot.demo</name>
+	<description>Spring Boot AOT Demo</description>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>25</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+	</dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Enable layered JARs for better caching -->
+                    <layers>
+                        <enabled>true</enabled>
+                    </layers>
+                    <image>
+                        <!-- Use Paketo Buildpacks -->
+                        <builder>bellsoft/buildpacks.builder:musl</builder>
+                        <env>
+                            <!-- JDK 25 -->
+                            <BP_JVM_VERSION>25</BP_JVM_VERSION>
+                            <!-- Use JRE instead of full JDK -->
+                            <BP_JVM_TYPE>JRE</BP_JVM_TYPE>
+                            <!-- Enable JVM optimizations -->
+                            <BPL_JVM_HEAD_ROOM>5</BPL_JVM_HEAD_ROOM>
+                            <!-- CDS (Class Data Sharing) for faster startup -->
+                            <BPL_JVM_CDS_ENABLED>true</BPL_JVM_CDS_ENABLED>
+                            <BP_LOG_LEVEL>DEBUG</BP_LOG_LEVEL>
+                        </env>
+                    </image>
+                </configuration>
+                <dependencies>
+                    <!-- Add missing dependencies for SNAPSHOT version -->
+                    <dependency>
+                        <groupId>org.apache.maven.shared</groupId>
+                        <artifactId>maven-artifact-transfer</artifactId>
+                        <version>0.13.1</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-loader-tools</artifactId>
+                        <version>4.0.0-SNAPSHOT</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-buildpack-platform</artifactId>
+                        <version>4.0.0-SNAPSHOT</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>process-aot</id>
+                        <goals>
+                            <goal>process-aot</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <configuration>
+                    <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                    <metadataRepository>
+                        <enabled>true</enabled>
+                    </metadataRepository>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>add-reachability-metadata</id>
+                        <goals>
+                            <goal>add-reachability-metadata</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- Profile for Native Image compilation using buildpacks -->
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <image>
+                                <builder>bellsoft/buildpacks.builder:musl</builder>
+                                <env>
+                                    <BP_SPRING_AOT_ENABLED>true</BP_SPRING_AOT_ENABLED>
+                                    <BP_JVM_CDS_ENABLED>true</BP_JVM_CDS_ENABLED>
+                                    <BP_NATIVE_IMAGE>true</BP_NATIVE_IMAGE>
+                                    <BP_NATIVE_IMAGE_BUILD_ARGUMENTS>
+                                        --enable-monitoring=heapdump,jfr,jvmstat
+                                        --initialize-at-build-time=org.slf4j,ch.qos.logback.classic.util.LogbackMDCAdapter,tools.jackson.core
+                                        --initialize-at-run-time=ch.qos.logback,org.slf4j.LoggerFactory
+                                    </BP_NATIVE_IMAGE_BUILD_ARGUMENTS>
+                                </env>
+                            </image>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+	<repositories>
+		<repository>
+			<id>spring-snapshots</id>
+			<name>Spring Snapshots</name>
+			<url>https://repo.spring.io/snapshot</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>spring-snapshots</id>
+			<name>Spring Snapshots</name>
+			<url>https://repo.spring.io/snapshot</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+		</pluginRepository>
+	</pluginRepositories>
+</project>
