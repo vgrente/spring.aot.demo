@@ -344,12 +344,35 @@ If AOT processing fails, try building without the AOT profile first:
 mvn clean package
 ```
 
+## Kubernetes Deployment
+
+This project includes complete Kubernetes deployment manifests in the `k8s/` directory:
+- Deployment with health probes and resource limits
+- ClusterIP Service
+- ConfigMap for application configuration
+- Ingress for external access (with NGINX)
+- Vault integration for secrets management (see `k8s/vault/`)
+
+For detailed deployment instructions, see [k8s/README.md](k8s/README.md).
+
+### Quick Start with Kubernetes
+
+```bash
+# Deploy all resources
+kubectl apply -f k8s/
+
+# Access via port-forward (recommended for local development)
+kubectl port-forward service/spring-aot-demo 8080:8080
+
+# Test the API
+curl http://localhost:8080/actuator/health
+```
+
 ## Future Enhancements
 
 Potential improvements for this demo:
 - GraalVM Native Image compilation
 - PostgreSQL integration for production
-- Kubernetes deployment manifests
 - Integration tests with Testcontainers
 - API documentation with Swagger/OpenAPI
 - Caching with Spring Cache
