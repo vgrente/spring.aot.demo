@@ -1,12 +1,13 @@
-apiVersion: secrets.hashicorp.com/v1beta1
-kind: VaultAuth
+---
+apiVersion: "secrets.hashicorp.com/v1beta1"
+kind: "VaultAuth"
 metadata:
-  name: vault-auth
-  namespace: default
+  name: "vault-auth"
+  namespace: "default"
 spec:
-  vaultConnectionRef: vault-connection
-  method: kubernetes
-  mount: kubernetes
+  vaultConnectionRef: "vault-connection"
+  method: "kubernetes"
+  mount: "kubernetes"
   kubernetes:
-    role: spring-aot-demo
-    serviceAccount: vault-auth
+    role: "spring-aot-demo"
+    serviceAccount: "vault-auth"

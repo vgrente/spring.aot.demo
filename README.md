@@ -22,6 +22,7 @@ This project demonstrates modern Spring Boot application development with:
 ## Features
 
 ### AOT Compilation
+
 The application uses Spring's AOT processing to pre-compute application configuration and generate optimized code at build time, resulting in:
 - Faster startup times
 - Reduced memory consumption
@@ -29,9 +30,11 @@ The application uses Spring's AOT processing to pre-compute application configur
 - Better performance in containerized environments
 
 ### AOT Cache (JDK 25 Feature)
+
 JDK 25 introduces AOT caching capabilities that can further improve startup performance. The AOT cache stores optimized code from a training run, which can then be reused in subsequent application starts.
 
 ### Product Management API
+
 A complete CRUD REST API for managing products with the following endpoints:
 - `GET /api/products` - List all products
 - `GET /api/products/{id}` - Get product by ID
@@ -41,6 +44,7 @@ A complete CRUD REST API for managing products with the following endpoints:
 - `GET /api/products/search?name={name}` - Search products by name
 
 ### Health Monitoring
+
 Spring Boot Actuator endpoints for application health and metrics:
 - `/actuator/health` - Application health status
 - `/actuator/info` - Application information
@@ -83,16 +87,19 @@ spring.aot.demo/
 ## Building the Application
 
 ### Standard Build (without AOT)
+
 ```bash
 mvn clean package
 ```
 
 ### Build with AOT Processing
+
 ```bash
 mvn clean package -Paot
 ```
 
 ### Build Container Image
+
 ```bash
 mvn spring-boot:build-image
 ```
@@ -106,16 +113,19 @@ This creates a Docker image using Paketo Buildpacks with:
 ## Running the Application
 
 ### Run Locally
+
 ```bash
 mvn spring-boot:run
 ```
 
 ### Run in Docker
+
 ```bash
 docker run -p 8080:8080 spring-aot-demo:0.0.1-SNAPSHOT
 ```
 
 ### Run with Docker Compose
+
 ```bash
 docker-compose up
 ```
@@ -129,6 +139,7 @@ JDK 25 introduces an AOT cache feature that can significantly improve startup pe
 To use the AOT cache feature, you need to perform a training run on your application in extracted form:
 
 #### Step 1: Extract the Application JAR
+
 ```bash
 java -Djarmode=tools -jar target/spring.aot.demo-0.0.1-SNAPSHOT.jar extract --destination application
 ```
@@ -136,6 +147,7 @@ java -Djarmode=tools -jar target/spring.aot.demo-0.0.1-SNAPSHOT.jar extract --de
 This extracts the Spring Boot JAR into a directory structure that allows for better layer caching and AOT optimization.
 
 #### Step 2: Run Training to Generate AOT Cache
+
 ```bash
 cd application
 java -XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh -jar spring.aot.demo-0.0.1-SNAPSHOT.jar
@@ -147,6 +159,7 @@ This command:
 - Creates an `app.aot` cache file in the current directory
 
 #### Step 3: Run with AOT Cache
+
 ```bash
 java -XX:AOTCache=app.aot -jar spring.aot.demo-0.0.1-SNAPSHOT.jar
 ```
@@ -192,16 +205,19 @@ curl http://localhost:8080/actuator/health
 ### Using curl
 
 List all products:
+
 ```bash
 curl http://localhost:8080/api/products
 ```
 
 Get product by ID:
+
 ```bash
 curl http://localhost:8080/api/products/1
 ```
 
 Create a new product:
+
 ```bash
 curl -X POST http://localhost:8080/api/products \
   -H "Content-Type: application/json" \
@@ -209,6 +225,7 @@ curl -X POST http://localhost:8080/api/products \
 ```
 
 Update a product:
+
 ```bash
 curl -X PUT http://localhost:8080/api/products/1 \
   -H "Content-Type: application/json" \
@@ -216,16 +233,19 @@ curl -X PUT http://localhost:8080/api/products/1 \
 ```
 
 Delete a product:
+
 ```bash
 curl -X DELETE http://localhost:8080/api/products/1
 ```
 
 Search products:
+
 ```bash
 curl http://localhost:8080/api/products/search?name=laptop
 ```
 
 Check application health:
+
 ```bash
 curl http://localhost:8080/actuator/health
 ```
@@ -233,6 +253,7 @@ curl http://localhost:8080/actuator/health
 ## Configuration
 
 ### Application Properties
+
 Key configuration options in `src/main/resources/application.properties`:
 
 ```properties
@@ -251,12 +272,14 @@ management.endpoints.web.exposure.include=health,info,metrics,prometheus
 ```
 
 ### AOT Configuration
+
 The AOT processing is configured in `pom.xml`:
 - Enabled via the `aot` profile
 - Integrated with Spring Boot Maven Plugin
 - Uses GraalVM native build tools for metadata
 
 ### Container Optimization
+
 The Docker image is configured with:
 - JDK 25 with JRE type (smaller footprint)
 - Class Data Sharing (CDS) enabled
@@ -267,22 +290,27 @@ The Docker image is configured with:
 ## Development
 
 ### Running Tests
+
 ```bash
 mvn test
 ```
 
 ### Verify Build
+
 ```bash
 mvn verify
 ```
 
 ### Clean Build Artifacts
+
 ```bash
 mvn clean
 ```
 
 ### H2 Console
+
 When running locally, access the H2 database console at:
+
 ```
 http://localhost:8080/h2-console
 ```
@@ -322,24 +350,31 @@ This project demonstrates the benefits of Spring AOT:
 ## Troubleshooting
 
 ### Build Issues
+
 If you encounter build issues:
+
 ```bash
 mvn clean install -U
 ```
 
 ### Container Issues
+
 To inspect the container:
+
 ```bash
 docker run --rm -it --entrypoint /bin/sh spring-aot-demo:0.0.1-SNAPSHOT
 ```
 
 View container layers:
+
 ```bash
 docker history spring-aot-demo:0.0.1-SNAPSHOT
 ```
 
 ### AOT Processing Errors
+
 If AOT processing fails, try building without the AOT profile first:
+
 ```bash
 mvn clean package
 ```
@@ -388,3 +423,4 @@ This is a demonstration project for educational purposes.
 - [Spring AOT Documentation](https://docs.spring.io/spring-framework/reference/core/aot.html)
 - [Paketo Buildpacks](https://paketo.io/)
 - [GraalVM](https://www.graalvm.org/)
+

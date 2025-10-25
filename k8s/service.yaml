@@ -1,15 +1,16 @@
-apiVersion: v1
-kind: Service
+---
+apiVersion: "v1"
+kind: "Service"
 metadata:
-  name: spring-aot-demo
+  name: "spring-aot-demo"
   labels:
-    app: spring-aot-demo
+    app: "spring-aot-demo"
 spec:
-  type: ClusterIP
+  type: "ClusterIP"
   ports:
   - port: 8080
     targetPort: 8080
-    protocol: TCP
-    name: http
+    protocol: "TCP"
+    name: "http"
   selector:
-    app: spring-aot-demo
+    app: "spring-aot-demo"

@@ -316,3 +316,4 @@ kubectl delete namespace vault-secrets-operator-system
 - [Vault Secrets Operator Documentation](https://developer.hashicorp.com/vault/docs/platform/k8s/vso)
 - [Vault Kubernetes Auth](https://developer.hashicorp.com/vault/docs/auth/kubernetes)
 - [Vault KV Secrets Engine](https://developer.hashicorp.com/vault/docs/secrets/kv)
+

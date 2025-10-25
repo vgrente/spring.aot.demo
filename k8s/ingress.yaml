@@ -1,21 +1,22 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+---
+apiVersion: "networking.k8s.io/v1"
+kind: "Ingress"
 metadata:
-  name: spring-aot-demo
+  name: "spring-aot-demo"
   labels:
-    app: spring-aot-demo
+    app: "spring-aot-demo"
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rewrite-target: "/"
 spec:
-  ingressClassName: nginx
+  ingressClassName: "nginx"
   rules:
-  - host: spring-aot-demo.local
+  - host: "spring-aot-demo.local"
     http:
       paths:
-      - path: /
-        pathType: Prefix
+      - path: "/"
+        pathType: "Prefix"
         backend:
           service:
-            name: spring-aot-demo
+            name: "spring-aot-demo"
             port:
               number: 8080
