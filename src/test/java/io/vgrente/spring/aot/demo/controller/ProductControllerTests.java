@@ -109,4 +109,114 @@ class ProductControllerTest {
 				.andExpect(jsonPath("$", hasSize(2)))
 				.andExpect(jsonPath("$[*].name", hasItem(containsString("Laptop"))));
 	}
+
+	// Error Handling Tests
+
+	@Test
+	void shouldReturnBadRequestWhenSearchNameIsEmpty() throws Exception {
+		mockMvc.perform(get("/api/products/search?name=")).andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.type", is("about:blank"))).andExpect(jsonPath("$.title", is("Bad Request")))
+				.andExpect(jsonPath("$.status", is(400)))
+				.andExpect(jsonPath("$.detail", is("Search parameter 'name' must not be empty")))
+				.andExpect(jsonPath("$.instance", is("/api/products/search")))
+				.andExpect(jsonPath("$.timestamp", notNullValue()));
+	}
+
+	@Test
+	void shouldReturnBadRequestWhenCreatingProductWithId() throws Exception {
+		String productJson = """
+				{
+				    "id": 1,
+				    "name": "New Product",
+				    "price": 149.99,
+				    "description": "New Description"
+				}
+				""";
+
+		mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(productJson))
+				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.type", is("about:blank")))
+				.andExpect(jsonPath("$.title", is("Bad Request"))).andExpect(jsonPath("$.status", is(400)))
+				.andExpect(jsonPath("$.detail", is("Product ID must not be provided when creating a new product")))
+				.andExpect(jsonPath("$.instance", is("/api/products")))
+				.andExpect(jsonPath("$.timestamp", notNullValue()));
+	}
+
+	@Test
+	void shouldReturnValidationErrorForNegativePrice() throws Exception {
+		String productJson = """
+				{
+				    "name": "Test Product",
+				    "price": -10.0,
+				    "description": "Test"
+				}
+				""";
+
+		mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(productJson))
+				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.type", is("about:blank")))
+				.andExpect(jsonPath("$.title", is("Validation Failed"))).andExpect(jsonPath("$.status", is(400)))
+				.andExpect(jsonPath("$.detail", is("Request validation failed. See 'errors' for details.")))
+				.andExpect(jsonPath("$.errors.price", is("Product price must be greater than or equal to 0")))
+				.andExpect(jsonPath("$.instance", is("/api/products")))
+				.andExpect(jsonPath("$.timestamp", notNullValue()));
+	}
+
+	@Test
+	void shouldReturnBadRequestForMissingRequiredFields() throws Exception {
+		String productJson = """
+				{
+				    "description": "Test"
+				}
+				""";
+
+		mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(productJson))
+				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.type", is("about:blank")))
+				.andExpect(jsonPath("$.title", is("Validation Failed"))).andExpect(jsonPath("$.status", is(400)))
+				.andExpect(jsonPath("$.detail", is("Request validation failed. See 'errors' for details.")))
+				.andExpect(jsonPath("$.errors", notNullValue()))
+				.andExpect(jsonPath("$.errors.name", is("Product name is required")))
+				.andExpect(jsonPath("$.errors.price", is("Product price is required")))
+				.andExpect(jsonPath("$.instance", is("/api/products")))
+				.andExpect(jsonPath("$.timestamp", notNullValue()));
+	}
+
+	@Test
+	void shouldReturnBadRequestForMalformedJson() throws Exception {
+		String malformedJson = "{ invalid json }";
+
+		mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(malformedJson))
+				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.type", is("about:blank")))
+				.andExpect(jsonPath("$.title", is("Malformed Request"))).andExpect(jsonPath("$.status", is(400)))
+				.andExpect(jsonPath("$.detail", is("Request body is not readable or malformed")))
+				.andExpect(jsonPath("$.instance", is("/api/products")))
+				.andExpect(jsonPath("$.timestamp", notNullValue()));
+	}
+
+	@Test
+	void shouldReturnNotFoundForUpdateNonExistentProduct() throws Exception {
+		String productJson = """
+				{
+				    "name": "Updated Product",
+				    "price": 199.99,
+				    "description": "Updated"
+				}
+				""";
+
+		mockMvc.perform(put("/api/products/999").contentType(MediaType.APPLICATION_JSON).content(productJson))
+				.andExpect(status().isNotFound()).andExpect(jsonPath("$.type", is("about:blank")))
+				.andExpect(jsonPath("$.title", is("Resource Not Found"))).andExpect(jsonPath("$.status", is(404)))
+				.andExpect(jsonPath("$.detail", is("Product not found with id: 999")))
+				.andExpect(jsonPath("$.instance", is("/api/products/999")))
+				.andExpect(jsonPath("$.timestamp", notNullValue()));
+	}
+
+	@Test
+	void shouldReturnNotFoundForDeleteNonExistentProduct() throws Exception {
+		mockMvc.perform(delete("/api/products/999")).andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.type", is("about:blank")))
+				.andExpect(jsonPath("$.title", is("Resource Not Found"))).andExpect(jsonPath("$.status", is(404)))
+				.andExpect(jsonPath("$.detail", is("Product not found with id: 999")))
+				.andExpect(jsonPath("$.instance", is("/api/products/999")))
+				.andExpect(jsonPath("$.timestamp", notNullValue()));
+	}
+
 }

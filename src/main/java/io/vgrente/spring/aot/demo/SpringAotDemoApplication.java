@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication(scanBasePackages = {"io.vgrente.spring.aot.demo.controller", "io.vgrente.spring.aot.demo.config",
-		"io.vgrente.spring.aot.demo.repository"})
+		"io.vgrente.spring.aot.demo.repository", "io.vgrente.spring.aot.demo.error"})
 @ImportRuntimeHints(JacksonRuntimeHints.class)
 public class SpringAotDemoApplication {
 

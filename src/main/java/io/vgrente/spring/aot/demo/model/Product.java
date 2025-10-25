@@ -1,6 +1,14 @@
 package io.vgrente.spring.aot.demo.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 
 @Entity
 @Table(name = "products")
@@ -10,9 +18,12 @@ public class Product {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@NotBlank(message = "Product name is required")
 	@Column(nullable = false)
 	private String name;
 
+	@NotNull(message = "Product price is required")
+	@PositiveOrZero(message = "Product price must be greater than or equal to 0")
 	@Column(nullable = false)
 	private Double price;
 
