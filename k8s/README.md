@@ -71,11 +71,12 @@ The ingress configuration requires NGINX Ingress Controller and `minikube tunnel
 #### Prerequisites
 
 1. **Install NGINX Ingress Controller** (if not already installed):
+
    ```bash
    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml
    ```
-
 2. **Add hostname to `/etc/hosts`**:
+
    ```bash
    echo "127.0.0.1 spring-aot-demo.local" | sudo tee -a /etc/hosts
    ```
@@ -283,3 +284,4 @@ kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- \
 6. **Network Policies**: Restrict pod-to-pod communication
 7. **Pod Disruption Budget**: Ensure high availability during updates
 8. **Affinity Rules**: Control pod placement across nodes
+
