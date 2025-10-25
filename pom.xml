@@ -232,10 +232,10 @@
           <!-- Generate coverage report after tests -->
           <execution>
             <id>report</id>
-            <phase>test</phase>
             <goals>
               <goal>report</goal>
             </goals>
+            <phase>test</phase>
           </execution>
           <!-- Check coverage thresholds -->
           <execution>
