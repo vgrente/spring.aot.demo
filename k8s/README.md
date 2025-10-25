@@ -52,7 +52,9 @@ kubectl describe deployment spring-aot-demo
 
 ## Access the Application
 
-### Using Port Forward
+### Option 1: Using Port Forward (Recommended for Local Development)
+
+The simplest and most reliable way to access the application locally:
 
 ```bash
 kubectl port-forward service/spring-aot-demo 8080:8080
@@ -60,14 +62,69 @@ kubectl port-forward service/spring-aot-demo 8080:8080
 
 Then access at: `http://localhost:8080`
 
-### Using Ingress (if configured)
+This method works immediately without any additional configuration.
 
-Add to `/etc/hosts`:
-```
-<INGRESS_IP> spring-aot-demo.local
+### Option 2: Using Ingress with Minikube
+
+The ingress configuration requires NGINX Ingress Controller and `minikube tunnel` to work properly.
+
+#### Prerequisites
+
+1. **Install NGINX Ingress Controller** (if not already installed):
+   ```bash
+   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml
+   ```
+
+2. **Add hostname to `/etc/hosts`**:
+   ```bash
+   echo "127.0.0.1 spring-aot-demo.local" | sudo tee -a /etc/hosts
+   ```
+
+#### Start Minikube Tunnel
+
+The ingress requires `minikube tunnel` to expose the LoadBalancer service. Run this in a **separate terminal window**:
+
+```bash
+minikube tunnel
 ```
 
-Access at: `http://spring-aot-demo.local`
+**Important Notes:**
+- You will be prompted for your sudo password
+- Keep this terminal window open - the tunnel must stay running
+- The tunnel runs in the foreground and requires interactive input
+- You should see output like: `Tunnel successfully started`
+
+#### Access the Application
+
+Once the tunnel is running:
+
+```bash
+# Test the ingress
+curl http://spring-aot-demo.local/actuator/health
+
+# Or access in browser
+open http://spring-aot-demo.local
+```
+
+#### Troubleshooting Ingress
+
+If ingress doesn't work:
+
+```bash
+# Check ingress status
+kubectl get ingress spring-aot-demo
+
+# Check if LoadBalancer has external IP
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+
+# Verify tunnel is running and bound to port 80
+sudo lsof -i :80
+
+# Check ingress controller logs
+kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller --tail=50
+```
+
+If still not working, use **Option 1 (Port Forward)** instead.
 
 ## Test Endpoints
 
