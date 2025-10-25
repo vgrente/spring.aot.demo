@@ -88,6 +88,14 @@
       <name>Spring Snapshots</name>
       <url>https://repo.spring.io/snapshot</url>
     </pluginRepository>
+    <pluginRepository>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>sonatype-snapshots</id>
+      <name>Sonatype Snapshots</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </pluginRepository>
   </pluginRepositories>
   <build>
     <plugins>
@@ -204,6 +212,65 @@
               <goal>check</goal>
             </goals>
             <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- JaCoCo code coverage -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.14</version>
+        <configuration>
+          <!-- Exclude generated classes from coverage -->
+          <excludes>
+            <exclude>**/*$$SpringCGLIB$$*</exclude>
+            <exclude>**/*$$FastClassBySpringCGLIB$$*</exclude>
+            <exclude>**/*$$EnhancerBySpringCGLIB$$*</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <!-- Prepare agent for collecting coverage data -->
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <!-- Generate coverage report after tests -->
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>test</phase>
+          </execution>
+          <!-- Check coverage thresholds -->
+          <execution>
+            <id>check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.60</minimum>
+                    </limit>
+                  </limits>
+                  <excludes>
+                    <!-- Exclude Spring-generated CGLIB proxy classes -->
+                    <exclude>**/*$$SpringCGLIB$$*</exclude>
+                    <exclude>**/*$$FastClassBySpringCGLIB$$*</exclude>
+                    <exclude>**/*$$EnhancerBySpringCGLIB$$*</exclude>
+                  </excludes>
+                </rule>
+              </rules>
+            </configuration>
           </execution>
         </executions>
       </plugin>

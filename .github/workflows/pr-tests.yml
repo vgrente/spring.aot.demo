@@ -31,3 +31,18 @@ jobs:
         name: "test-results"
         path: "target/surefire-reports/"
         retention-days: 7
+    - name: "Upload coverage reports"
+      if: "always()"
+      uses: "actions/upload-artifact@v4"
+      with:
+        name: "coverage-reports"
+        path: "target/site/jacoco/"
+        retention-days: 7
+    - name: "Add coverage report comment"
+      if: "github.event_name == 'pull_request'"
+      uses: "madrapps/jacoco-report@v1.6.1"
+      with:
+        paths: "target/site/jacoco/jacoco.xml"
+        token: "${{ secrets.GITHUB_TOKEN }}"
+        min-coverage-overall: 60
+        min-coverage-changed-files: 50
