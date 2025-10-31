@@ -1,9 +1,11 @@
 ---
-name: "Build Native Image"
+name: "Build Native Image (Development)"
 "on":
   push:
     branches:
     - "main"
+    tags-ignore:
+    - "v*.*.*"
 jobs:
   build-native:
     name: "Build Native Image (${{ matrix.arch }})"
@@ -91,13 +93,13 @@ jobs:
         username: "${{ github.actor }}"
         password: "${{ secrets.GITHUB_TOKEN }}"
     - name: "Create and push multi-arch manifests"
-      run: "# Create and push multi-arch manifest for version tag\ndocker manifest\
+      run: "# Create and push multi-arch manifest for SNAPSHOT version\ndocker manifest\
         \ create ghcr.io/${{ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT\
         \ \\\n  ghcr.io/${{ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT-amd64\
         \ \\\n  ghcr.io/${{ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT-arm64\n\
         \ndocker manifest push ghcr.io/${{ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT\n\
-        \n# Create and push multi-arch manifest for latest tag\ndocker manifest create\
-        \ ghcr.io/${{ github.repository_owner }}/spring-aot-demo:latest \\\n  ghcr.io/${{\
-        \ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT-amd64 \\\n  ghcr.io/${{\
-        \ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT-arm64\n\ndocker\
-        \ manifest push ghcr.io/${{ github.repository_owner }}/spring-aot-demo:latest"
+        \n# Create and push multi-arch manifest for dev tag (development builds)\n\
+        docker manifest create ghcr.io/${{ github.repository_owner }}/spring-aot-demo:dev\
+        \ \\\n  ghcr.io/${{ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT-amd64\
+        \ \\\n  ghcr.io/${{ github.repository_owner }}/spring-aot-demo:0.0.1-SNAPSHOT-arm64\n\
+        \ndocker manifest push ghcr.io/${{ github.repository_owner }}/spring-aot-demo:dev\n"
