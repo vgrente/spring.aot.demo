@@ -10,7 +10,7 @@
   </parent>
   <groupId>io.vgrente</groupId>
   <artifactId>spring.aot.demo</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.1-SNAPSHOT</version>
   <name>spring.aot.demo</name>
   <description>Spring Boot AOT Demo</description>
   <url/>
