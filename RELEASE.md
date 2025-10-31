@@ -72,6 +72,26 @@ If you need to create a release without a tag:
 4. Enter the version number (without 'v' prefix)
 5. Click "Run workflow"
 
+## Version Management
+
+The release workflow automatically manages versions in `pom.xml`:
+
+1. **During Release**: The workflow temporarily updates `pom.xml` to the release version (e.g., `1.0.0`)
+2. **After Release**: Automatically commits the next development version to main (e.g., `1.0.1-SNAPSHOT`)
+
+Example flow when releasing version `1.0.0`:
+- Before: `pom.xml` on main contains `0.0.1-SNAPSHOT`
+- Tag `v1.0.0` is pushed
+- Release workflow builds version `1.0.0` (without modifying main branch)
+- After successful release: workflow automatically commits `1.0.1-SNAPSHOT` to main
+
+This ensures:
+- The main branch always has a SNAPSHOT version reflecting ongoing development
+- Release artifacts use clean version numbers (no SNAPSHOT suffix)
+- No manual version management required
+
+The version bump commit includes `[skip ci]` to avoid triggering development builds.
+
 ## Release Artifacts
 
 Each release creates:
