@@ -1,0 +1,182 @@
+---
+name: "Release Native Image"
+"on":
+  push:
+    tags:
+    - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., 1.0.0)"
+        required: true
+        type: "string"
+jobs:
+  prepare:
+    name: "Prepare Release"
+    runs-on: "ubuntu-latest"
+    outputs:
+      version: "${{ steps.version.outputs.version }}"
+      major: "${{ steps.version.outputs.major }}"
+      minor: "${{ steps.version.outputs.minor }}"
+      patch: "${{ steps.version.outputs.patch }}"
+    steps:
+    - name: "Extract version from tag or input"
+      id: "version"
+      run: "if [ \"${{ github.event_name }}\" = \"workflow_dispatch\" ]; then\n  VERSION=\"\
+        ${{ github.event.inputs.version }}\"\nelse\n  VERSION=\"${GITHUB_REF#refs/tags/v}\"\
+        \nfi\n\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"major=$(echo\
+        \ ${VERSION} | cut -d. -f1)\" >> $GITHUB_OUTPUT\necho \"minor=$(echo ${VERSION}\
+        \ | cut -d. -f1-2)\" >> $GITHUB_OUTPUT\necho \"patch=${VERSION}\" >> $GITHUB_OUTPUT\n\
+        \necho \"Release version: ${VERSION}\"\n"
+  build-native:
+    name: "Build Native Image (${{ matrix.arch }})"
+    needs: "prepare"
+    strategy:
+      matrix:
+        include:
+        - arch: "amd64"
+          runner: "ubuntu-latest"
+          platform: "linux/amd64"
+        - arch: "arm64"
+          runner: "ubuntu-24.04-arm"
+          platform: "linux/arm64"
+    runs-on: "${{ matrix.runner }}"
+    permissions:
+      contents: "read"
+      packages: "write"
+    steps:
+    - name: "Checkout code"
+      uses: "actions/checkout@v4"
+    - name: "Set up JDK 25"
+      uses: "actions/setup-java@v4"
+      with:
+        java-version: "25"
+        distribution: "temurin"
+        cache: "maven"
+    - name: "Log in to GitHub Container Registry"
+      uses: "docker/login-action@v3"
+      with:
+        registry: "ghcr.io"
+        username: "${{ github.actor }}"
+        password: "${{ secrets.GITHUB_TOKEN }}"
+    - name: "Update pom.xml version"
+      run: "mvn versions:set -DnewVersion=${{ needs.prepare.outputs.version }} -DgenerateBackupPoms=false\n"
+    - name: "Build with AOT"
+      run: "mvn clean package"
+    - name: "Run tests"
+      run: "mvn test"
+    - name: "Build native container image (${{ matrix.arch }})"
+      run: "mvn spring-boot:build-image -Pnative \\\n  -Dspring-boot.build-image.imageName=spring.aot.demo:${{\
+        \ needs.prepare.outputs.version }}-${{ matrix.arch }} \\\n  -Dspring-boot.build-image.imagePlatform=${{\
+        \ matrix.platform }}\n"
+    - name: "Test native image"
+      if: "matrix.arch == 'amd64'"
+      run: "# Start the container in background\ndocker run -d --name spring-aot-demo\
+        \ -p 8080:8080 spring.aot.demo:${{ needs.prepare.outputs.version }}-${{ matrix.arch\
+        \ }}\n\n# Wait for application to start (max 30 seconds)\ntimeout=30\nwhile\
+        \ [ $timeout -gt 0 ]; do\n  if docker logs spring-aot-demo 2>&1 | grep -q\
+        \ \"Started SpringAotDemoApplication\"; then\n    echo \"Application started\
+        \ successfully\"\n    break\n  fi\n  echo \"Waiting for application to start...\
+        \ ($timeout seconds remaining)\"\n  sleep 2\n  timeout=$((timeout - 2))\n\
+        done\n\n# Test health endpoint\nsleep 5\ncurl -f http://localhost:8080/actuator/health\
+        \ || exit 1\n\n# Test products endpoint\ncurl -f http://localhost:8080/api/products\
+        \ || exit 1\n\n# Stop container\ndocker stop spring-aot-demo\ndocker rm spring-aot-demo\n"
+    - name: "Tag and push images to GHCR"
+      run: "VERSION=${{ needs.prepare.outputs.version }}\nMAJOR=${{ needs.prepare.outputs.major\
+        \ }}\nMINOR=${{ needs.prepare.outputs.minor }}\nARCH=${{ matrix.arch }}\n\
+        IMAGE_BASE=\"ghcr.io/${{ github.repository_owner }}/spring-aot-demo\"\n\n\
+        # Tag with full version\ndocker tag spring.aot.demo:${VERSION}-${ARCH} ${IMAGE_BASE}:${VERSION}-${ARCH}\n\
+        docker push ${IMAGE_BASE}:${VERSION}-${ARCH}\n\n# Tag with major.minor version\n\
+        docker tag spring.aot.demo:${VERSION}-${ARCH} ${IMAGE_BASE}:${MINOR}-${ARCH}\n\
+        docker push ${IMAGE_BASE}:${MINOR}-${ARCH}\n\n# Tag with major version\ndocker\
+        \ tag spring.aot.demo:${VERSION}-${ARCH} ${IMAGE_BASE}:${MAJOR}-${ARCH}\n\
+        docker push ${IMAGE_BASE}:${MAJOR}-${ARCH}\n\n# Tag as latest\ndocker tag\
+        \ spring.aot.demo:${VERSION}-${ARCH} ${IMAGE_BASE}:latest-${ARCH}\ndocker\
+        \ push ${IMAGE_BASE}:latest-${ARCH}\n"
+    - name: "Save image metadata"
+      run: "docker images spring.aot.demo\ndocker inspect spring.aot.demo:${{ needs.prepare.outputs.version\
+        \ }}-${{ matrix.arch }} > image-metadata-${{ matrix.arch }}.json\n"
+    - name: "Upload image metadata"
+      uses: "actions/upload-artifact@v4"
+      with:
+        name: "image-metadata-${{ matrix.arch }}"
+        path: "image-metadata-${{ matrix.arch }}.json"
+        retention-days: 90
+  create-manifest:
+    name: "Create Multi-Arch Manifests"
+    needs:
+    - "prepare"
+    - "build-native"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: "read"
+      packages: "write"
+    steps:
+    - name: "Log in to GitHub Container Registry"
+      uses: "docker/login-action@v3"
+      with:
+        registry: "ghcr.io"
+        username: "${{ github.actor }}"
+        password: "${{ secrets.GITHUB_TOKEN }}"
+    - name: "Create and push multi-arch manifests"
+      run: "VERSION=${{ needs.prepare.outputs.version }}\nMAJOR=${{ needs.prepare.outputs.major\
+        \ }}\nMINOR=${{ needs.prepare.outputs.minor }}\nIMAGE_BASE=\"ghcr.io/${{ github.repository_owner\
+        \ }}/spring-aot-demo\"\n\n# Create manifest for full version\ndocker manifest\
+        \ create ${IMAGE_BASE}:${VERSION} \\\n  ${IMAGE_BASE}:${VERSION}-amd64 \\\n\
+        \  ${IMAGE_BASE}:${VERSION}-arm64\ndocker manifest push ${IMAGE_BASE}:${VERSION}\n\
+        \n# Create manifest for major.minor version\ndocker manifest create ${IMAGE_BASE}:${MINOR}\
+        \ \\\n  ${IMAGE_BASE}:${MINOR}-amd64 \\\n  ${IMAGE_BASE}:${MINOR}-arm64\n\
+        docker manifest push ${IMAGE_BASE}:${MINOR}\n\n# Create manifest for major\
+        \ version\ndocker manifest create ${IMAGE_BASE}:${MAJOR} \\\n  ${IMAGE_BASE}:${MAJOR}-amd64\
+        \ \\\n  ${IMAGE_BASE}:${MAJOR}-arm64\ndocker manifest push ${IMAGE_BASE}:${MAJOR}\n\
+        \n# Create manifest for latest\ndocker manifest create ${IMAGE_BASE}:latest\
+        \ \\\n  ${IMAGE_BASE}:latest-amd64 \\\n  ${IMAGE_BASE}:latest-arm64\ndocker\
+        \ manifest push ${IMAGE_BASE}:latest\n"
+  create-release:
+    name: "Create GitHub Release"
+    needs:
+    - "prepare"
+    - "build-native"
+    - "create-manifest"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: "write"
+      packages: "read"
+    steps:
+    - name: "Checkout code"
+      uses: "actions/checkout@v4"
+      with:
+        fetch-depth: 0
+    - name: "Download artifacts"
+      uses: "actions/download-artifact@v4"
+      with:
+        path: "artifacts"
+    - name: "Generate changelog"
+      id: "changelog"
+      run: "VERSION=${{ needs.prepare.outputs.version }}\nPREVIOUS_TAG=$(git describe\
+        \ --tags --abbrev=0 HEAD^ 2>/dev/null || echo \"\")\n\nif [ -z \"$PREVIOUS_TAG\"\
+        \ ]; then\n  COMMITS=$(git log --pretty=format:\"- %s (%h)\" --no-merges)\n\
+        else\n  COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:\"- %s (%h)\"\
+        \ --no-merges)\nfi\n\n# Categorize commits\nFEATURES=$(echo \"$COMMITS\" |\
+        \ grep -i \"^- feat\" || true)\nFIXES=$(echo \"$COMMITS\" | grep -i \"^- fix\"\
+        \ || true)\nOTHERS=$(echo \"$COMMITS\" | grep -vi \"^- feat\" | grep -vi \"\
+        ^- fix\" || true)\n\n# Build changelog\nCHANGELOG=\"## Release v${VERSION}\\\
+        n\\n\"\nCHANGELOG=\"${CHANGELOG}**Docker Images:**\\n\"\nCHANGELOG=\"${CHANGELOG}-\
+        \ \\`ghcr.io/${{ github.repository_owner }}/spring-aot-demo:${VERSION}\\`\\\
+        n\"\nCHANGELOG=\"${CHANGELOG}- \\`ghcr.io/${{ github.repository_owner }}/spring-aot-demo:latest\\\
+        `\\n\\n\"\n\nif [ -n \"$FEATURES\" ]; then\n  CHANGELOG=\"${CHANGELOG}###\
+        \ Features\\n${FEATURES}\\n\\n\"\nfi\n\nif [ -n \"$FIXES\" ]; then\n  CHANGELOG=\"\
+        ${CHANGELOG}### Bug Fixes\\n${FIXES}\\n\\n\"\nfi\n\nif [ -n \"$OTHERS\" ];\
+        \ then\n  CHANGELOG=\"${CHANGELOG}### Other Changes\\n${OTHERS}\\n\\n\"\n\
+        fi\n\necho \"$CHANGELOG\" > CHANGELOG.md\ncat CHANGELOG.md\n"
+    - name: "Create GitHub Release"
+      uses: "softprops/action-gh-release@v1"
+      with:
+        tag_name: "v${{ needs.prepare.outputs.version }}"
+        name: "Release v${{ needs.prepare.outputs.version }}"
+        body_path: "CHANGELOG.md"
+        draft: false
+        prerelease: false
+        files: "artifacts/**/*.json\n"
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
