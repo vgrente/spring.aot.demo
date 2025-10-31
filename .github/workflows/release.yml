@@ -180,3 +180,39 @@ jobs:
         files: "artifacts/**/*.json\n"
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  bump-version:
+    name: "Bump Development Version"
+    needs:
+    - "prepare"
+    - "create-release"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: "write"
+    steps:
+    - name: "Checkout main branch"
+      uses: "actions/checkout@v4"
+      with:
+        ref: "main"
+        token: "${{ secrets.GITHUB_TOKEN }}"
+    - name: "Set up JDK 25"
+      uses: "actions/setup-java@v4"
+      with:
+        java-version: "25"
+        distribution: "temurin"
+        cache: "maven"
+    - name: "Calculate next development version"
+      id: "next-version"
+      run: "CURRENT_VERSION=\"${{ needs.prepare.outputs.version }}\"\nMAJOR=$(echo\
+        \ ${CURRENT_VERSION} | cut -d. -f1)\nMINOR=$(echo ${CURRENT_VERSION} | cut\
+        \ -d. -f2)\nPATCH=$(echo ${CURRENT_VERSION} | cut -d. -f3)\n\n# Increment\
+        \ patch version for next development cycle\nNEXT_PATCH=$((PATCH + 1))\nNEXT_VERSION=\"\
+        ${MAJOR}.${MINOR}.${NEXT_PATCH}-SNAPSHOT\"\n\necho \"next_version=${NEXT_VERSION}\"\
+        \ >> $GITHUB_OUTPUT\necho \"Next development version: ${NEXT_VERSION}\"\n"
+    - name: "Update pom.xml to next development version"
+      run: "mvn versions:set -DnewVersion=${{ steps.next-version.outputs.next_version\
+        \ }} -DgenerateBackupPoms=false\n"
+    - name: "Commit and push version bump"
+      run: "git config user.name \"github-actions[bot]\"\ngit config user.email \"\
+        github-actions[bot]@users.noreply.github.com\"\n\ngit add pom.xml\ngit commit\
+        \ -m \"chore: bump version to ${{ steps.next-version.outputs.next_version\
+        \ }} [skip ci]\"\ngit push origin main\n"
