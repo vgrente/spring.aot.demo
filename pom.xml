@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
     <relativePath/>
     <!-- lookup parent from repository -->
   </parent>
@@ -178,12 +178,12 @@
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
-        <version>2.43.0</version>
+        <version>2.44.0</version>
         <configuration>
           <java>
             <!-- Use Eclipse formatter (better JDK 25 compatibility) -->
             <eclipse>
-              <version>4.32.0</version>
+              <version>4.34</version>
             </eclipse>
             <!-- Additional formatting -->
             <removeUnusedImports/>
